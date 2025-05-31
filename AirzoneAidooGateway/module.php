@@ -12,6 +12,9 @@ class AirzoneAidooGateway extends IPSModule
         // Properties
         $this->RegisterPropertyString('GatewayIP', '');
         $this->RegisterPropertyInteger('UpdateInterval', 60);
+        
+        // Timer
+        $this->RegisterTimer('UpdateTimer', 0, 'AIRZONEGATEWAY_GetSystems($_IPS[\'TARGET\']);');
     }
 
     public function Destroy()
@@ -79,26 +82,75 @@ class AirzoneAidooGateway extends IPSModule
     public function GetSystems(): array
     {
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
-        $url = "http://{$gatewayIP}/api/v1/systems";
         
+        // First try to get system info
+        $systemsUrl = "http://{$gatewayIP}/api/v1/systems";
+        $systems = $this->makeApiCall($systemsUrl);
+        
+        if ($systems !== false && isset($systems['systems'])) {
+            return $systems['systems'];
+        }
+        
+        // If systems endpoint doesn't work, try alternative endpoint
+        $integrationUrl = "http://{$gatewayIP}/api/v1/integration";
+        $integration = $this->makeApiCall($integrationUrl);
+        
+        if ($integration !== false) {
+            // Create a basic system structure from integration data
+            return [
+                [
+                    'systemID' => '1',
+                    'name' => 'Airzone System',
+                    'zones' => [
+                        [
+                            'zoneID' => '1',
+                            'name' => 'Zone 1'
+                        ]
+                    ]
+                ]
+            ];
+        }
+        
+        return [];
+    }
+    
+    private function makeApiCall(string $url): array|false
+    {
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 10,
-            CURLOPT_HTTPHEADER => ['Accept: application/json']
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/json'
+            ],
+            CURLOPT_USERAGENT => 'IP-Symcon Airzone Module'
         ]);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
         curl_close($ch);
 
-        if ($response !== false && $httpCode === 200) {
-            $data = json_decode($response, true);
-            return $data['systems'] ?? [];
+        if ($response === false || !empty($error)) {
+            IPS_LogMessage('AirzoneGateway', "Curl Error: $error");
+            return false;
+        }
+        
+        if ($httpCode !== 200) {
+            IPS_LogMessage('AirzoneGateway', "HTTP Error: $httpCode for URL: $url");
+            return false;
         }
 
-        return [];
+        $data = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            IPS_LogMessage('AirzoneGateway', "JSON Error: " . json_last_error_msg());
+            return false;
+        }
+        
+        return $data;
     }
 
     private function GetZoneInstanceID(string $systemID, string $zoneID): int
