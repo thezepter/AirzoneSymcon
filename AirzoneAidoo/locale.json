@@ -1,0 +1,38 @@
+{
+    "translations": {
+        "de": {
+            "Power": "Stromversorgung",
+            "Temperature": "Temperatur",
+            "Set Temperature": "Solltemperatur",
+            "Mode": "Modus",
+            "Fan Speed": "Lüftergeschwindigkeit",
+            "Humidity": "Luftfeuchtigkeit",
+            "Stop": "Stop",
+            "Cool": "Kühlen",
+            "Heat": "Heizen",
+            "Fan": "Lüfter",
+            "Dry": "Entfeuchten",
+            "Auto": "Automatik",
+            "Low": "Niedrig",
+            "Medium": "Mittel",
+            "High": "Hoch",
+            "Connection Settings": "Verbindungseinstellungen",
+            "Use Local Gateway Connection": "Lokale Gateway-Verbindung verwenden",
+            "Gateway IP Address": "Gateway IP-Adresse",
+            "Cloud Username/Email": "Cloud Benutzername/E-Mail",
+            "Cloud Password": "Cloud Passwort",
+            "Device Settings": "Geräteeinstellungen",
+            "System ID": "System ID",
+            "Zone ID": "Zonen ID",
+            "Update Interval (seconds)": "Aktualisierungsintervall (Sekunden)",
+            "Test Connection": "Verbindung testen",
+            "Update Now": "Jetzt aktualisieren",
+            "Instance is active": "Instanz ist aktiv",
+            "Instance is inactive": "Instanz ist inaktiv",
+            "Gateway IP address is empty": "Gateway IP-Adresse ist leer",
+            "Gateway IP address is invalid": "Gateway IP-Adresse ist ungültig",
+            "Connection timeout": "Verbindungs-Timeout",
+            "Authentication failed": "Authentifizierung fehlgeschlagen"
+        }
+    }
+}

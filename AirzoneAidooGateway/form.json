@@ -1,0 +1,77 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "GatewayIP",
+            "caption": "Gateway IP Address",
+            "validate": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "UpdateInterval",
+            "caption": "Update Interval (seconds)",
+            "minimum": 30,
+            "maximum": 3600,
+            "suffix": "s"
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Refresh Systems",
+            "onClick": "AIRZONEGATEWAY_GetSystems($id);"
+        },
+        {
+            "type": "Configurator",
+            "name": "ZoneConfigurator",
+            "caption": "Available Zones",
+            "rowCount": 10,
+            "add": false,
+            "delete": false,
+            "sort": {
+                "column": "SystemName",
+                "direction": "ascending"
+            },
+            "columns": [
+                {
+                    "caption": "System ID",
+                    "name": "SystemID",
+                    "width": "100px"
+                },
+                {
+                    "caption": "System Name",
+                    "name": "SystemName",
+                    "width": "150px"
+                },
+                {
+                    "caption": "Zone ID",
+                    "name": "ZoneID",
+                    "width": "100px"
+                },
+                {
+                    "caption": "Zone Name",
+                    "name": "ZoneName",
+                    "width": "150px"
+                },
+                {
+                    "caption": "Status",
+                    "name": "Status",
+                    "width": "100px"
+                }
+            ],
+            "values": []
+        }
+    ],
+    "status": [
+        {
+            "code": 101,
+            "icon": "active",
+            "caption": "Gateway is active"
+        },
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "Invalid gateway IP address"
+        }
+    ]
+}
