@@ -5,7 +5,7 @@ declare(strict_types=1);
 class AirzoneAidoo extends IPSModule
 {
     // API Endpoints
-    const API_LOCAL_BASE = 'http://%s/api/v1';
+    const API_LOCAL_BASE = 'http://%s:3000/api/v1';
     const API_CLOUD_BASE = 'https://www.airzonecloud.com/users/sign_in';
     
     // Status codes

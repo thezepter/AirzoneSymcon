@@ -83,7 +83,7 @@ class AirzoneAidooDiscovery extends IPSModule
 
     private function CheckDevice(string $ip): array|false
     {
-        $url = "http://{$ip}/api/v1/ping";
+        $url = "http://{$ip}:3000/api/v1/ping";
         
         $ch = curl_init();
         curl_setopt_array($ch, [

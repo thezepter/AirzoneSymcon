@@ -84,7 +84,7 @@ class AirzoneAidooGateway extends IPSModule
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
         // First try to get system info
-        $systemsUrl = "http://{$gatewayIP}/api/v1/systems";
+        $systemsUrl = "http://{$gatewayIP}:3000/api/v1/systems";
         $systems = $this->makeApiCall($systemsUrl);
         
         if ($systems !== false && isset($systems['systems'])) {
@@ -92,7 +92,7 @@ class AirzoneAidooGateway extends IPSModule
         }
         
         // If systems endpoint doesn't work, try alternative endpoint
-        $integrationUrl = "http://{$gatewayIP}/api/v1/integration";
+        $integrationUrl = "http://{$gatewayIP}:3000/api/v1/integration";
         $integration = $this->makeApiCall($integrationUrl);
         
         if ($integration !== false) {
