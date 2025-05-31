@@ -83,35 +83,114 @@ class AirzoneAidooGateway extends IPSModule
     {
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        // First try to get system info
-        $systemsUrl = "http://{$gatewayIP}:3000/api/v1/systems";
-        $systems = $this->makeApiCall($systemsUrl);
+        // Based on Home Assistant implementation, try multiple endpoints
+        $endpoints = [
+            "http://{$gatewayIP}:3000/api/v1/hvac",
+            "http://{$gatewayIP}:3000/api/v1/systems", 
+            "http://{$gatewayIP}:3000/api/v1/zones",
+            "http://{$gatewayIP}:3000/api/v1/status"
+        ];
         
-        if ($systems !== false && isset($systems['systems'])) {
-            return $systems['systems'];
+        foreach ($endpoints as $endpoint) {
+            $data = $this->makeApiCall($endpoint);
+            if ($data !== false) {
+                IPS_LogMessage('AirzoneGateway', "Success with endpoint: $endpoint");
+                return $this->parseSystemData($data, $endpoint);
+            }
         }
         
-        // If systems endpoint doesn't work, try alternative endpoint
-        $integrationUrl = "http://{$gatewayIP}:3000/api/v1/integration";
-        $integration = $this->makeApiCall($integrationUrl);
+        IPS_LogMessage('AirzoneGateway', "All endpoints failed for IP: $gatewayIP");
+        return [];
+    }
+    
+    private function parseSystemData(array $data, string $endpoint): array
+    {
+        // Parse different response formats based on endpoint
+        if (strpos($endpoint, '/hvac') !== false && isset($data['data'])) {
+            return $this->parseHvacData($data['data']);
+        }
         
-        if ($integration !== false) {
-            // Create a basic system structure from integration data
-            return [
-                [
-                    'systemID' => '1',
-                    'name' => 'Airzone System',
-                    'zones' => [
-                        [
-                            'zoneID' => '1',
-                            'name' => 'Zone 1'
-                        ]
+        if (strpos($endpoint, '/systems') !== false && isset($data['systems'])) {
+            return $data['systems'];
+        }
+        
+        if (strpos($endpoint, '/zones') !== false && isset($data['zones'])) {
+            return $this->parseZonesData($data['zones']);
+        }
+        
+        if (strpos($endpoint, '/status') !== false) {
+            return $this->parseStatusData($data);
+        }
+        
+        // Default fallback
+        return [
+            [
+                'systemID' => '1',
+                'name' => 'Airzone System',
+                'zones' => [
+                    [
+                        'zoneID' => '1',
+                        'name' => 'Zone 1'
+                    ]
+                ]
+            ]
+        ];
+    }
+    
+    private function parseHvacData(array $hvacData): array
+    {
+        $systems = [];
+        $systemId = 1;
+        
+        foreach ($hvacData as $zone) {
+            $zoneId = $zone['zone_id'] ?? $zone['id'] ?? count($systems) + 1;
+            $zoneName = $zone['name'] ?? "Zone $zoneId";
+            
+            $systems[] = [
+                'systemID' => (string)$systemId,
+                'name' => 'Airzone System',
+                'zones' => [
+                    [
+                        'zoneID' => (string)$zoneId,
+                        'name' => $zoneName
                     ]
                 ]
             ];
         }
         
-        return [];
+        return $systems;
+    }
+    
+    private function parseZonesData(array $zonesData): array
+    {
+        return [
+            [
+                'systemID' => '1',
+                'name' => 'Airzone System',
+                'zones' => array_map(function($zone) {
+                    return [
+                        'zoneID' => (string)($zone['id'] ?? $zone['zone_id'] ?? '1'),
+                        'name' => $zone['name'] ?? 'Zone ' . ($zone['id'] ?? '1')
+                    ];
+                }, $zonesData)
+            ]
+        ];
+    }
+    
+    private function parseStatusData(array $statusData): array
+    {
+        return [
+            [
+                'systemID' => '1', 
+                'name' => 'Airzone System',
+                'zones' => [
+                    [
+                        'zoneID' => '1',
+                        'name' => 'Main Zone'
+                    ]
+                ]
+            ]
+        ];
     }
     
     private function makeApiCall(string $url): array|false
