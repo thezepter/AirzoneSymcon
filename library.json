@@ -5,5 +5,19 @@
     "url": "https://github.com/symcon/AirzoneAidoo",
     "version": "1.0",
     "build": 1,
-    "date": 0
+    "date": 0,
+    "modules": [
+        {
+            "id": "{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}",
+            "file": "AirzoneAidoo/module.php"
+        },
+        {
+            "id": "{D4E5F6A7-B8C9-1234-DEFG-456789ABCDEF}",
+            "file": "AirzoneAidooDiscovery/module.php"
+        },
+        {
+            "id": "{C1D2E3F4-A5B6-7890-CDEF-123456789ABC}",
+            "file": "AirzoneAidooGateway/module.php"
+        }
+    ]
 }

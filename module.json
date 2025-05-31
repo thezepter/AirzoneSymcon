@@ -1,11 +1,1 @@
-{
-    "id": "{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}",
-    "name": "AirzoneAidoo",
-    "type": 3,
-    "vendor": "Airzone",
-    "aliases": ["Airzone", "Aidoo", "Climate Control"],
-    "parentRequirements": [],
-    "childRequirements": [],
-    "implemented": [],
-    "prefix": "AIRZONE"
-}
+

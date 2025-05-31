@@ -135,12 +135,12 @@ class AirzoneAidooGateway extends IPSModule
         curl_close($ch);
 
         if ($response === false || !empty($error)) {
-            IPS_LogMessage('AirzoneGateway', "Curl Error: $error");
+            IPS_LogMessage('AirzoneGateway', "Curl Error for $url: $error");
             return false;
         }
         
         if ($httpCode !== 200) {
-            IPS_LogMessage('AirzoneGateway', "HTTP Error: $httpCode for URL: $url");
+            IPS_LogMessage('AirzoneGateway', "HTTP Error: $httpCode for URL: $url Response: $response");
             return false;
         }
 
