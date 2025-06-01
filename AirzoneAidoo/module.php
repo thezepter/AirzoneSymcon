@@ -84,13 +84,8 @@ class AirzoneAidoo extends IPSModule
             $this->SetTimerInterval('UpdateTimer', 0);
         }
 
-        // Test connection
-        if ($this->TestConnection()) {
-            $this->SetStatus(IS_ACTIVE);
-            $this->Update();
-        } else {
-            $this->SetStatus(self::STATUS_INST_CONNECTION_TIMEOUT);
-        }
+        // Set status to active - connection will be tested when update timer runs
+        $this->SetStatus(IS_ACTIVE);
     }
 
     public function RequestAction($Ident, $Value)
