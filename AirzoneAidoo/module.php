@@ -123,9 +123,13 @@ class AirzoneAidoo extends IPSModule
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
         
-        $data = ['on' => $power ? 1 : 0];
+        $data = [
+            'systemID' => (int)$systemID,
+            'zoneID' => (int)$zoneID,
+            'on' => $power ? 1 : 0
+        ];
 
-        if ($this->SendCommand('PUT', "/api/v1/hvac?systemid={$systemID}&zoneid={$zoneID}", $data)) {
+        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
             $this->SetValue('Power', $power);
             return true;
         }
@@ -137,9 +141,13 @@ class AirzoneAidoo extends IPSModule
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
         
-        $data = ['setpoint' => $temperature];
+        $data = [
+            'systemID' => (int)$systemID,
+            'zoneID' => (int)$zoneID,
+            'setpoint' => $temperature
+        ];
 
-        if ($this->SendCommand('PUT', "/api/v1/hvac?systemid={$systemID}&zoneid={$zoneID}", $data)) {
+        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
             $this->SetValue('SetTemperature', $temperature);
             return true;
         }
@@ -164,9 +172,13 @@ class AirzoneAidoo extends IPSModule
             return false;
         }
 
-        $data = ['mode' => $modeMapping[$mode]];
+        $data = [
+            'systemID' => (int)$systemID,
+            'zoneID' => (int)$zoneID,
+            'mode' => $modeMapping[$mode]
+        ];
 
-        if ($this->SendCommand('PUT', "/api/v1/hvac?systemid={$systemID}&zoneid={$zoneID}", $data)) {
+        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
             $this->SetValue('Mode', $mode);
             return true;
         }
@@ -178,9 +190,13 @@ class AirzoneAidoo extends IPSModule
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
         
-        $data = ['fanspeed' => $speed];
+        $data = [
+            'systemID' => (int)$systemID,
+            'zoneID' => (int)$zoneID,
+            'fanspeed' => $speed
+        ];
 
-        if ($this->SendCommand('PUT', "/api/v1/hvac?systemid={$systemID}&zoneid={$zoneID}", $data)) {
+        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
             $this->SetValue('FanSpeed', $speed);
             return true;
         }
