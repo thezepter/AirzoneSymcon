@@ -255,16 +255,86 @@ class AirzoneAidoo extends IPSModule
             3 => 'Heizen',
             4 => 'Lüften',
             5 => 'Entfeuchten',
-            6 => 'Zusatzheizung',
             7 => 'Automatik'
         ];
         
         $modeName = isset($modeNames[$mode]) ? $modeNames[$mode] : 'Unbekannt';
         echo "Test: Modus auf {$modeName} (#{$mode}) setzen<br>";
         
-        $result = $this->SetMode($mode);
-        echo ($result ? "Erfolg" : "Fehler") . "<br>";
-        return $result;
+        $systemID = $this->ReadPropertyString('SystemID');
+        $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
+        
+        $modeMapping = [
+            1 => 'stop',
+            2 => 'cool',
+            3 => 'heat', 
+            4 => 'fan',
+            5 => 'dry',
+            7 => 'auto'
+        ];
+
+        if (!isset($modeMapping[$mode])) {
+            echo "Ungültiger Modus: {$mode}<br>";
+            return false;
+        }
+
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
+
+        // Daten für die PUT-Anfrage
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "mode" => $modeMapping[$mode]
+        );
+
+        echo "Sende an API: " . json_encode($putData) . "<br>";
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            echo "cURL Error: " . curl_error($ch) . "<br>";
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
+        curl_close($ch);
+
+        echo "API-Antwort: " . $response . "<br>";
+
+        // Prüfe Antwort
+        $responseData = json_decode($response, true);
+        if ($responseData) {
+            if (isset($responseData['data'][0])) {
+                echo "Erfolg - Variable wird aktualisiert<br>";
+                $this->SetValue('Mode', $mode);
+                return true;
+            } else {
+                echo "Unerwartete API-Antwort<br>";
+                return false;
+            }
+        } else {
+            echo "Keine gültige JSON-Antwort<br>";
+            return false;
+        }
     }
 
 
@@ -387,7 +457,6 @@ class AirzoneAidoo extends IPSModule
             3 => 'heat', 
             4 => 'fan',
             5 => 'dry',
-            6 => 'aux',
             7 => 'auto'
         ];
 
@@ -506,7 +575,6 @@ class AirzoneAidoo extends IPSModule
             IPS_SetVariableProfileAssociation('AIRZONE.Mode', 3, 'Heizen', '', 0xFF8000);
             IPS_SetVariableProfileAssociation('AIRZONE.Mode', 4, 'Lüften', '', 0x80FF80);
             IPS_SetVariableProfileAssociation('AIRZONE.Mode', 5, 'Entfeuchten', '', 0xFFFF00);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 6, 'Zusatzheizung', '', 0xFF4000);
             IPS_SetVariableProfileAssociation('AIRZONE.Mode', 7, 'Automatik', '', 0x8080FF);
         }
 
