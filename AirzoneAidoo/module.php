@@ -324,9 +324,12 @@ class AirzoneAidoo extends IPSModule
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
         curl_close($ch);
 
+        // Debug logging
         if ($response === false || $httpCode >= 400) {
+            error_log("Airzone API Error: HTTP {$httpCode}, cURL Error: {$error}, URL: {$url}, Data: " . json_encode($data));
             return false;
         }
 
