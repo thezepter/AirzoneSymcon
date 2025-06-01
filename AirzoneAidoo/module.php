@@ -247,6 +247,26 @@ class AirzoneAidoo extends IPSModule
         return $this->SetTemperature($temperature);
     }
 
+    public function TestMode($mode = 2)
+    {
+        $modeNames = [
+            1 => 'Stop',
+            2 => 'Kühlen', 
+            3 => 'Heizen',
+            4 => 'Lüften',
+            5 => 'Entfeuchten',
+            6 => 'Zusatzheizung',
+            7 => 'Automatik'
+        ];
+        
+        $modeName = isset($modeNames[$mode]) ? $modeNames[$mode] : 'Unbekannt';
+        echo "Test: Modus auf {$modeName} (#{$mode}) setzen<br>";
+        
+        $result = $this->SetMode($mode);
+        echo ($result ? "Erfolg" : "Fehler") . "<br>";
+        return $result;
+    }
+
 
 
     public function SetPower(bool $power)
@@ -481,12 +501,13 @@ class AirzoneAidoo extends IPSModule
         if (!IPS_VariableProfileExists('AIRZONE.Mode')) {
             IPS_CreateVariableProfile('AIRZONE.Mode', 1);
             IPS_SetVariableProfileText('AIRZONE.Mode', '', '');
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 0, $this->Translate('Stop'), '', 0x808080);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 1, $this->Translate('Cool'), '', 0x0080FF);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 2, $this->Translate('Heat'), '', 0xFF8000);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 3, $this->Translate('Fan'), '', 0x80FF80);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 4, $this->Translate('Dry'), '', 0xFFFF00);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 5, $this->Translate('Auto'), '', 0x8080FF);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 1, 'Stop', '', 0x808080);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 2, 'Kühlen', '', 0x0080FF);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 3, 'Heizen', '', 0xFF8000);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 4, 'Lüften', '', 0x80FF80);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 5, 'Entfeuchten', '', 0xFFFF00);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 6, 'Zusatzheizung', '', 0xFF4000);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 7, 'Automatik', '', 0x8080FF);
         }
 
         // Fan Speed profile
