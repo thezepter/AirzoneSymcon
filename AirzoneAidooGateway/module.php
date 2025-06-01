@@ -13,8 +13,7 @@ class AirzoneAidooGateway extends IPSModule
         $this->RegisterPropertyString('GatewayIP', '');
         $this->RegisterPropertyInteger('UpdateInterval', 60);
         
-        // Timer
-        $this->RegisterTimer('UpdateTimer', 0, 'AIRZONEGATEWAY_GetSystems($_IPS[\'TARGET\']);');
+        // No automatic timer - zones are discovered manually via button
     }
 
     public function Destroy()
@@ -34,10 +33,6 @@ class AirzoneAidooGateway extends IPSModule
             $this->SetStatus(201); // Invalid IP
             return;
         }
-
-        // Set timer
-        $interval = $this->ReadPropertyInteger('UpdateInterval');
-        $this->SetTimerInterval('UpdateTimer', $interval * 1000);
 
         $this->SetStatus(IS_ACTIVE);
     }
