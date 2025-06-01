@@ -186,7 +186,59 @@ class AirzoneAidoo extends IPSModule
     public function TestPowerOff()
     {
         echo "Test: Zone ausschalten<br>";
-        return $this->SetPower(false);
+        
+        $systemID = $this->ReadPropertyString('SystemID');
+        $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
+        
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
+
+        // Daten für die PUT-Anfrage
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "on" => 0 // 0, um die Klimaanlage auszuschalten
+        );
+
+        echo "Sende: " . json_encode($putData) . "<br>";
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            echo "cURL Error: " . curl_error($ch) . "<br>";
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
+        curl_close($ch);
+
+        // Ausgabe der Antwort
+        echo "API-Antwort: " . $response . "<br>";
+        
+        // Auch über das Modul versuchen
+        echo "Über Modul: ";
+        $result = $this->SetPower(false);
+        echo ($result ? "Erfolg" : "Fehler") . "<br>";
+        
+        return true;
     }
 
     public function TestSetTemp($temperature = 22.0)
