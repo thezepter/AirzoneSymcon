@@ -6,254 +6,255 @@ class AirzoneAidooGateway extends IPSModule
 {
     public function Create()
     {
-        // Never delete this line!
         parent::Create();
-
-        // Properties
-        $this->RegisterPropertyString('GatewayIP', '');
-        $this->RegisterPropertyInteger('UpdateInterval', 60);
         
-        // No automatic timer - zones are discovered manually via button
+        // Properties
+        $this->RegisterPropertyString('GatewayIP', '192.168.2.61');
+        $this->RegisterPropertyInteger('UpdateInterval', 30);
+        
+        // Timer
+        $this->RegisterTimer('UpdateTimer', 0, 'AIRZONEGATEWAY_UpdateZones($id);');
     }
 
     public function Destroy()
     {
-        // Never delete this line!
         parent::Destroy();
     }
 
     public function ApplyChanges()
     {
-        // Never delete this line!
         parent::ApplyChanges();
-
-        // Validate IP
+        
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
-        if (empty($gatewayIP) || !filter_var($gatewayIP, FILTER_VALIDATE_IP)) {
-            $this->SetStatus(201); // Invalid IP
+        
+        if (empty($gatewayIP)) {
+            $this->SetStatus(IS_INACTIVE);
             return;
         }
-
-        $this->SetStatus(IS_ACTIVE);
+        
+        // Test connection
+        if ($this->TestConnection()) {
+            $this->SetStatus(IS_ACTIVE);
+            $this->CreateZoneVariables();
+            $this->SetTimerInterval('UpdateTimer', $this->ReadPropertyInteger('UpdateInterval') * 1000);
+        } else {
+            $this->SetStatus(IS_EBASE + 1); // Connection error
+        }
     }
 
     public function GetConfigurationForm()
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        
-        $systems = $this->GetSystems();
-        
-        if (!empty($systems)) {
-            $values = [];
-            foreach ($systems as $system) {
-                $instanceID = $this->GetZoneInstanceID($system['SystemID'], $system['ZoneID']);
-                $values[] = [
-                    'SystemID' => $system['SystemID'],
-                    'SystemName' => $system['SystemName'],
-                    'ZoneID' => $system['ZoneID'],
-                    'ZoneName' => $system['ZoneName'],
-                    'Status' => $instanceID > 0 ? 'Created' : 'Not Created',
-                    'instanceID' => $instanceID,
-                    'create' => [
-                        'moduleID' => '{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}',
-                        'name' => $system['ZoneName'],
-                        'configuration' => [
-                            'GatewayIP' => $this->ReadPropertyString('GatewayIP'),
-                            'SystemID' => $system['SystemID'],
-                            'ZoneID' => $system['ZoneID'],
-                            'UseLocalConnection' => true
-                        ]
-                    ]
-                ];
-            }
-            
-            $form['actions'][1]['values'] = $values;
-        }
-
-        return json_encode($form);
+        return json_encode([
+            'elements' => [
+                [
+                    'type' => 'ValidationTextBox',
+                    'name' => 'GatewayIP',
+                    'caption' => 'Gateway IP Address'
+                ],
+                [
+                    'type' => 'NumberSpinner',
+                    'name' => 'UpdateInterval',
+                    'caption' => 'Update Interval (seconds)',
+                    'minimum' => 10,
+                    'maximum' => 300
+                ]
+            ],
+            'actions' => [
+                [
+                    'type' => 'Button',
+                    'caption' => 'Test Connection',
+                    'onClick' => 'AIRZONEGATEWAY_TestConnection($id);'
+                ],
+                [
+                    'type' => 'Button',
+                    'caption' => 'Update Zones',
+                    'onClick' => 'AIRZONEGATEWAY_UpdateZones($id);'
+                ]
+            ]
+        ]);
     }
 
-    public function GetSystems(): array
+    public function TestConnection(): bool
     {
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
-        $systems = [];
+        $url = "http://{$gatewayIP}:3000/api/v1/hvac?systemid=1&zoneid=1";
         
-        // For Aidoo Pro: Get all zones for system 1
-        for ($zoneId = 1; $zoneId <= 4; $zoneId++) {
-            $endpoint = "http://{$gatewayIP}:3000/api/v1/hvac?systemid=1&zoneid={$zoneId}";
-            $data = $this->makeApiCall($endpoint);
-            
-            if ($data !== false && isset($data['data']) && !empty($data['data'])) {
-                $zoneData = $data['data'][0];
-                $systems[] = [
-                    'SystemID' => '1',
-                    'SystemName' => 'Airzone System',
-                    'ZoneID' => (string)$zoneData['zoneID'],
-                    'ZoneName' => $zoneData['name'] ?? "Zone {$zoneId}",
-                    'Status' => 'Available',
-                    'instanceID' => 0
-                ];
-                IPS_LogMessage('AirzoneGateway', "Found zone: " . ($zoneData['name'] ?? "Zone {$zoneId}"));
-            } else {
-                IPS_LogMessage('AirzoneGateway', "No data for zone {$zoneId} at endpoint: $endpoint");
-            }
-        }
-        
-        if (empty($systems)) {
-            IPS_LogMessage('AirzoneGateway', "No zones found for gateway IP: $gatewayIP");
-        }
-        
-        return $systems;
-    }
-    
-    private function parseSystemData(array $data, string $endpoint): array
-    {
-        // Parse different response formats based on endpoint
-        if (strpos($endpoint, '/hvac') !== false && isset($data['data'])) {
-            return $this->parseHvacData($data['data']);
-        }
-        
-        if (strpos($endpoint, '/systems') !== false && isset($data['systems'])) {
-            return $data['systems'];
-        }
-        
-        if (strpos($endpoint, '/zones') !== false && isset($data['zones'])) {
-            return $this->parseZonesData($data['zones']);
-        }
-        
-        if (strpos($endpoint, '/status') !== false) {
-            return $this->parseStatusData($data);
-        }
-        
-        // Default fallback
-        return [
-            [
-                'systemID' => '1',
-                'name' => 'Airzone System',
-                'zones' => [
-                    [
-                        'zoneID' => '1',
-                        'name' => 'Zone 1'
-                    ]
-                ]
-            ]
-        ];
-    }
-    
-    private function parseHvacData(array $hvacData): array
-    {
-        $systems = [];
-        $systemId = 1;
-        
-        foreach ($hvacData as $zone) {
-            $zoneId = $zone['zone_id'] ?? $zone['id'] ?? count($systems) + 1;
-            $zoneName = $zone['name'] ?? "Zone $zoneId";
-            
-            $systems[] = [
-                'systemID' => (string)$systemId,
-                'name' => 'Airzone System',
-                'zones' => [
-                    [
-                        'zoneID' => (string)$zoneId,
-                        'name' => $zoneName
-                    ]
-                ]
-            ];
-        }
-        
-        return $systems;
-    }
-    
-    private function parseZonesData(array $zonesData): array
-    {
-        return [
-            [
-                'systemID' => '1',
-                'name' => 'Airzone System',
-                'zones' => array_map(function($zone) {
-                    return [
-                        'zoneID' => (string)($zone['id'] ?? $zone['zone_id'] ?? '1'),
-                        'name' => $zone['name'] ?? 'Zone ' . ($zone['id'] ?? '1')
-                    ];
-                }, $zonesData)
-            ]
-        ];
-    }
-    
-    private function parseStatusData(array $statusData): array
-    {
-        return [
-            [
-                'systemID' => '1', 
-                'name' => 'Airzone System',
-                'zones' => [
-                    [
-                        'zoneID' => '1',
-                        'name' => 'Main Zone'
-                    ]
-                ]
-            ]
-        ];
-    }
-    
-    private function makeApiCall(string $url): array|false
-    {
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'Content-Type: application/json'
-            ],
-            CURLOPT_USERAGENT => 'IP-Symcon Airzone Module'
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 3
         ]);
-
+        
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
         curl_close($ch);
-
-        if ($response === false || !empty($error)) {
-            IPS_LogMessage('AirzoneGateway', "Curl Error for $url: $error");
-            return false;
-        }
         
-        if ($httpCode !== 200) {
-            IPS_LogMessage('AirzoneGateway', "HTTP Error: $httpCode for URL: $url Response: $response");
-            return false;
-        }
-
-        $data = json_decode($response, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            IPS_LogMessage('AirzoneGateway', "JSON Error: " . json_last_error_msg());
-            return false;
-        }
-        
-        return $data;
+        return ($httpCode === 200 && $response !== false);
     }
 
-    private function GetZoneInstanceID(string $systemID, string $zoneID): int
+    public function UpdateZones()
     {
-        // Search through all instances to find matching SystemID and ZoneID
-        $instances = IPS_GetInstanceListByModuleID('{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        foreach ($instances as $instanceID) {
-            try {
-                $instanceSystemID = IPS_GetProperty($instanceID, 'SystemID');
-                $instanceZoneID = IPS_GetProperty($instanceID, 'ZoneID');
-                
-                if ($instanceSystemID === $systemID && $instanceZoneID === $zoneID) {
-                    return $instanceID;
-                }
-            } catch (Exception $e) {
-                // Continue if property reading fails
-                continue;
+        // Update all 4 zones
+        for ($zone = 1; $zone <= 4; $zone++) {
+            $this->UpdateZoneData($zone);
+        }
+    }
+
+    private function UpdateZoneData(int $zoneID)
+    {
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
+        $url = "http://{$gatewayIP}:3000/api/v1/hvac?systemid=1&zoneid={$zoneID}";
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200 && $response !== false) {
+            $data = json_decode($response, true);
+            if (isset($data['data'])) {
+                $this->UpdateZoneVariables($zoneID, $data['data']);
             }
         }
+    }
+
+    private function UpdateZoneVariables(int $zoneID, array $data)
+    {
+        $zoneName = $this->GetZoneName($zoneID);
         
-        return 0;
+        // Update temperature variables
+        if (isset($data['roomTemp'])) {
+            $this->SetValue("Zone{$zoneID}_Temperature", (float)$data['roomTemp']);
+        }
+        
+        if (isset($data['setpoint'])) {
+            $this->SetValue("Zone{$zoneID}_Setpoint", (float)$data['setpoint']);
+        }
+        
+        if (isset($data['on'])) {
+            $this->SetValue("Zone{$zoneID}_Power", (bool)$data['on']);
+        }
+        
+        if (isset($data['mode'])) {
+            $this->SetValue("Zone{$zoneID}_Mode", (int)$data['mode']);
+        }
+        
+        if (isset($data['fanSpeed'])) {
+            $this->SetValue("Zone{$zoneID}_FanSpeed", (int)$data['fanSpeed']);
+        }
+    }
+
+    private function CreateZoneVariables()
+    {
+        $zoneNames = [1 => 'Badezimmer', 2 => 'Diele', 3 => 'Gata', 4 => 'Oma'];
+        
+        foreach ($zoneNames as $zoneID => $zoneName) {
+            // Temperature (read-only)
+            $this->RegisterVariableFloat("Zone{$zoneID}_Temperature", "{$zoneName} - Temperature", "~Temperature", $zoneID * 10 + 1);
+            
+            // Setpoint (editable)
+            $this->RegisterVariableFloat("Zone{$zoneID}_Setpoint", "{$zoneName} - Target Temperature", "~Temperature", $zoneID * 10 + 2);
+            $this->EnableAction("Zone{$zoneID}_Setpoint");
+            
+            // Power (editable)
+            $this->RegisterVariableBoolean("Zone{$zoneID}_Power", "{$zoneName} - Power", "~Switch", $zoneID * 10 + 3);
+            $this->EnableAction("Zone{$zoneID}_Power");
+            
+            // Mode (editable)
+            if (!IPS_VariableProfileExists('Airzone.Mode')) {
+                IPS_CreateVariableProfile('Airzone.Mode', 1);
+                IPS_SetVariableProfileAssociation('Airzone.Mode', 0, 'Stop', '', 0x808080);
+                IPS_SetVariableProfileAssociation('Airzone.Mode', 1, 'Cool', '', 0x0080FF);
+                IPS_SetVariableProfileAssociation('Airzone.Mode', 2, 'Heat', '', 0xFF4000);
+                IPS_SetVariableProfileAssociation('Airzone.Mode', 3, 'Fan', '', 0x00FF00);
+                IPS_SetVariableProfileAssociation('Airzone.Mode', 4, 'Dry', '', 0xFFFF00);
+                IPS_SetVariableProfileAssociation('Airzone.Mode', 5, 'Auto', '', 0x8000FF);
+            }
+            $this->RegisterVariableInteger("Zone{$zoneID}_Mode", "{$zoneName} - Mode", "Airzone.Mode", $zoneID * 10 + 4);
+            $this->EnableAction("Zone{$zoneID}_Mode");
+            
+            // Fan Speed (editable)
+            if (!IPS_VariableProfileExists('Airzone.FanSpeed')) {
+                IPS_CreateVariableProfile('Airzone.FanSpeed', 1);
+                IPS_SetVariableProfileAssociation('Airzone.FanSpeed', 0, 'Auto', '', 0x808080);
+                IPS_SetVariableProfileAssociation('Airzone.FanSpeed', 1, 'Low', '', 0x00FF00);
+                IPS_SetVariableProfileAssociation('Airzone.FanSpeed', 2, 'Medium', '', 0xFFFF00);
+                IPS_SetVariableProfileAssociation('Airzone.FanSpeed', 3, 'High', '', 0xFF4000);
+            }
+            $this->RegisterVariableInteger("Zone{$zoneID}_FanSpeed", "{$zoneName} - Fan Speed", "Airzone.FanSpeed", $zoneID * 10 + 5);
+            $this->EnableAction("Zone{$zoneID}_FanSpeed");
+        }
+    }
+
+    public function RequestAction($Ident, $Value)
+    {
+        // Extract zone ID from variable identifier
+        if (preg_match('/Zone(\d+)_(.+)/', $Ident, $matches)) {
+            $zoneID = (int)$matches[1];
+            $parameter = $matches[2];
+            
+            $this->SetZoneParameter($zoneID, $parameter, $Value);
+            $this->SetValue($Ident, $Value);
+        }
+    }
+
+    private function SetZoneParameter(int $zoneID, string $parameter, $value)
+    {
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
+        $url = "http://{$gatewayIP}:3000/api/v1/hvac";
+        
+        $data = [
+            'systemID' => 1,
+            'zoneID' => $zoneID
+        ];
+        
+        switch ($parameter) {
+            case 'Setpoint':
+                $data['setpoint'] = (float)$value;
+                break;
+            case 'Power':
+                $data['on'] = (bool)$value;
+                break;
+            case 'Mode':
+                $data['mode'] = (int)$value;
+                break;
+            case 'FanSpeed':
+                $data['fanSpeed'] = (int)$value;
+                break;
+        }
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json'
+            ],
+            CURLOPT_TIMEOUT => 5
+        ]);
+        
+        curl_exec($ch);
+        curl_close($ch);
+        
+        // Update zone data after change
+        $this->UpdateZoneData($zoneID);
+    }
+
+    private function GetZoneName(int $zoneID): string
+    {
+        $names = [1 => 'Badezimmer', 2 => 'Diele', 3 => 'Gata', 4 => 'Oma'];
+        return $names[$zoneID] ?? "Zone {$zoneID}";
     }
 }
