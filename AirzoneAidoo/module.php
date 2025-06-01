@@ -478,14 +478,14 @@ class AirzoneAidoo extends IPSModule
         $zoneID = $this->ReadPropertyString('ZoneID');
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        // Direkte Zuordnung: IP-Symcon Wert → API Wert
+        // Korrigierte Zuordnung: IP-Symcon Profile Wert → API Wert
         $modeMapping = [
-            1 => 1,  // Stop
-            2 => 2,  // Cooling
-            3 => 3,  // Heating
-            4 => 4,  // Fan
-            5 => 5,  // Dry
-            7 => 7   // Auto
+            0 => 1,  // Stop
+            1 => 2,  // Cooling
+            2 => 3,  // Heating
+            3 => 4,  // Fan
+            4 => 5,  // Dry
+            5 => 7   // Auto
         ];
 
         if (!isset($modeMapping[$mode])) {
@@ -605,12 +605,12 @@ class AirzoneAidoo extends IPSModule
         if (!IPS_VariableProfileExists('AIRZONE.Mode')) {
             IPS_CreateVariableProfile('AIRZONE.Mode', 1);
             IPS_SetVariableProfileText('AIRZONE.Mode', '', '');
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 1, 'Stop', '', 0x808080);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 2, 'Kühlen', '', 0x0080FF);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 3, 'Heizen', '', 0xFF8000);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 4, 'Lüften', '', 0x80FF80);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 5, 'Entfeuchten', '', 0xFFFF00);
-            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 7, 'Automatik', '', 0x8080FF);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 0, 'Stop', '', 0x808080);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 1, 'Kühlen', '', 0x0080FF);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 2, 'Heizen', '', 0xFF8000);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 3, 'Lüften', '', 0x80FF80);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 4, 'Entfeuchten', '', 0xFFFF00);
+            IPS_SetVariableProfileAssociation('AIRZONE.Mode', 5, 'Automatik', '', 0x8080FF);
         }
 
         // Fan Speed profile
