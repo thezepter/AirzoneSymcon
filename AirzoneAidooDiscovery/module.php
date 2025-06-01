@@ -52,31 +52,80 @@ class AirzoneAidooDiscovery extends IPSModule
 
     public function SearchDevices()
     {
-        $networkRange = $this->ReadPropertyString('NetworkRange');
         $devices = [];
         
-        // Test your known gateway first
-        $testIPs = ['192.168.2.61'];
+        // First try mDNS discovery for Airzone devices
+        $mdnsDevices = $this->DiscoverViaMDNS();
+        $devices = array_merge($devices, $mdnsDevices);
         
-        // Add network range IPs
+        // Test your known gateway
+        if ($this->TestAirzoneDevice('192.168.2.61')) {
+            $devices[] = [
+                'ip' => '192.168.2.61',
+                'status' => 'Found (Known Gateway)'
+            ];
+        }
+        
+        // Network scan as fallback
+        $networkRange = $this->ReadPropertyString('NetworkRange');
         if (strpos($networkRange, '/') !== false) {
             list($network, $cidr) = explode('/', $networkRange);
             $base = substr($network, 0, strrpos($network, '.'));
-            for ($i = 1; $i <= 254; $i++) {
-                $testIPs[] = $base . '.' . $i;
-            }
-        }
-        
-        foreach ($testIPs as $ip) {
-            if ($this->TestAirzoneDevice($ip)) {
-                $devices[] = [
-                    'ip' => $ip,
-                    'status' => 'Found'
-                ];
+            
+            // Scan limited range for performance
+            for ($i = 1; $i <= 100; $i++) {
+                $ip = $base . '.' . $i;
+                if ($ip !== '192.168.2.61' && $this->TestAirzoneDevice($ip)) {
+                    $devices[] = [
+                        'ip' => $ip,
+                        'status' => 'Found (Network Scan)'
+                    ];
+                }
             }
         }
         
         return $devices;
+    }
+
+    private function DiscoverViaMDNS(): array
+    {
+        $devices = [];
+        
+        // Use avahi-browse to find _http._tcp.local services
+        $command = 'timeout 5 avahi-browse -t -r _http._tcp 2>/dev/null';
+        $output = [];
+        exec($command, $output);
+        
+        foreach ($output as $line) {
+            // Look for Airzone device patterns: AZP, AZPFAN, AZW5GR, AZWS
+            if (preg_match('/(AZP|AZPFAN|AZW5GR|AZWS)[A-Z0-9]+\.local/', $line, $matches)) {
+                $hostname = $matches[0];
+                
+                // Resolve .local hostname to IP
+                $ip = $this->ResolveHostname($hostname);
+                if ($ip && $this->TestAirzoneDevice($ip)) {
+                    $devices[] = [
+                        'ip' => $ip,
+                        'status' => 'Found (mDNS: ' . $hostname . ')'
+                    ];
+                }
+            }
+        }
+        
+        return $devices;
+    }
+
+    private function ResolveHostname(string $hostname): string|false
+    {
+        // Try to resolve .local hostname to IP
+        $ip = gethostbyname($hostname);
+        
+        // gethostbyname returns the hostname if resolution fails
+        if ($ip === $hostname) {
+            return false;
+        }
+        
+        return $ip;
     }
 
     private function TestAirzoneDevice(string $ip): bool
