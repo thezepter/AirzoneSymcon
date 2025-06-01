@@ -293,15 +293,22 @@ class AirzoneAidoo extends IPSModule
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
         
-        $url = sprintf(self::API_LOCAL_BASE, $gatewayIP) . '/integration';
+        $url = sprintf(self::API_LOCAL_BASE, $gatewayIP) . '/hvac';
         $params = [
-            'systemID' => $systemID,
-            'zoneID' => $zoneID
+            'systemid' => $systemID,
+            'zoneid' => $zoneID
         ];
         
         $url .= '?' . http_build_query($params);
         
-        return $this->SendHTTPRequest('GET', $url);
+        $response = $this->SendHTTPRequest('GET', $url);
+        
+        // Extract data from Aidoo Pro response format
+        if ($response && isset($response['data']) && !empty($response['data'])) {
+            return $response['data'][0];
+        }
+        
+        return false;
     }
 
     private function GetCloudSystemData()
@@ -358,12 +365,13 @@ class AirzoneAidoo extends IPSModule
 
     private function UpdateVariables(array $data)
     {
-        if (isset($data['power'])) {
-            $this->SetValue('Power', (bool)$data['power']);
+        // Aidoo Pro data format mapping
+        if (isset($data['on'])) {
+            $this->SetValue('Power', (bool)$data['on']);
         }
         
-        if (isset($data['roomTemperature'])) {
-            $this->SetValue('Temperature', (float)$data['roomTemperature']);
+        if (isset($data['roomTemp'])) {
+            $this->SetValue('Temperature', (float)$data['roomTemp']);
         }
         
         if (isset($data['setpoint'])) {
@@ -371,13 +379,14 @@ class AirzoneAidoo extends IPSModule
         }
         
         if (isset($data['mode'])) {
+            // Aidoo Pro mode mapping: 1=Stop, 2=Cool, 3=Heat, 4=Fan, 5=Dry, 7=Auto
             $modeMapping = [
-                'stop' => 0,
-                'cool' => 1,
-                'heat' => 2,
-                'fan' => 3,
-                'dry' => 4,
-                'auto' => 5
+                1 => 0, // Stop
+                2 => 1, // Cool  
+                3 => 2, // Heat
+                4 => 3, // Fan
+                5 => 4, // Dry
+                7 => 5  // Auto
             ];
             
             if (isset($modeMapping[$data['mode']])) {
@@ -385,8 +394,8 @@ class AirzoneAidoo extends IPSModule
             }
         }
         
-        if (isset($data['fanSpeed'])) {
-            $this->SetValue('FanSpeed', (int)$data['fanSpeed']);
+        if (isset($data['speed'])) {
+            $this->SetValue('FanSpeed', (int)$data['speed']);
         }
         
         if (isset($data['humidity'])) {

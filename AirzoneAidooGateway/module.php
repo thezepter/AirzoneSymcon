@@ -51,26 +51,24 @@ class AirzoneAidooGateway extends IPSModule
         if (!empty($systems)) {
             $values = [];
             foreach ($systems as $system) {
-                foreach ($system['zones'] as $zone) {
-                    $instanceID = $this->GetZoneInstanceID($system['systemID'], $zone['zoneID']);
-                    $values[] = [
-                        'SystemID' => $system['systemID'],
-                        'SystemName' => $system['name'],
-                        'ZoneID' => $zone['zoneID'],
-                        'ZoneName' => $zone['name'],
-                        'Status' => $instanceID > 0 ? 'Created' : 'Not Created',
-                        'instanceID' => $instanceID,
-                        'create' => [
-                            'moduleID' => '{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}',
-                            'configuration' => [
-                                'GatewayIP' => $this->ReadPropertyString('GatewayIP'),
-                                'SystemID' => $system['systemID'],
-                                'ZoneID' => $zone['zoneID'],
-                                'UseLocalConnection' => true
-                            ]
+                $instanceID = $this->GetZoneInstanceID($system['SystemID'], $system['ZoneID']);
+                $values[] = [
+                    'SystemID' => $system['SystemID'],
+                    'SystemName' => $system['SystemName'],
+                    'ZoneID' => $system['ZoneID'],
+                    'ZoneName' => $system['ZoneName'],
+                    'Status' => $instanceID > 0 ? 'Created' : 'Not Created',
+                    'instanceID' => $instanceID,
+                    'create' => [
+                        'moduleID' => '{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}',
+                        'configuration' => [
+                            'GatewayIP' => $this->ReadPropertyString('GatewayIP'),
+                            'SystemID' => $system['SystemID'],
+                            'ZoneID' => $system['ZoneID'],
+                            'UseLocalConnection' => true
                         ]
-                    ];
-                }
+                    ]
+                ];
             }
             
             $form['actions'][1]['values'] = $values;
@@ -82,25 +80,34 @@ class AirzoneAidooGateway extends IPSModule
     public function GetSystems(): array
     {
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
+        $systems = [];
         
-        // Based on Home Assistant implementation, try multiple endpoints
-        $endpoints = [
-            "http://{$gatewayIP}:3000/api/v1/hvac",
-            "http://{$gatewayIP}:3000/api/v1/systems", 
-            "http://{$gatewayIP}:3000/api/v1/zones",
-            "http://{$gatewayIP}:3000/api/v1/status"
-        ];
-        
-        foreach ($endpoints as $endpoint) {
+        // For Aidoo Pro: Get all zones for system 1
+        for ($zoneId = 1; $zoneId <= 4; $zoneId++) {
+            $endpoint = "http://{$gatewayIP}:3000/api/v1/hvac?systemid=1&zoneid={$zoneId}";
             $data = $this->makeApiCall($endpoint);
-            if ($data !== false) {
-                IPS_LogMessage('AirzoneGateway', "Success with endpoint: $endpoint");
-                return $this->parseSystemData($data, $endpoint);
+            
+            if ($data !== false && isset($data['data']) && !empty($data['data'])) {
+                $zoneData = $data['data'][0];
+                $systems[] = [
+                    'SystemID' => '1',
+                    'SystemName' => 'Airzone System',
+                    'ZoneID' => (string)$zoneData['zoneID'],
+                    'ZoneName' => $zoneData['name'] ?? "Zone {$zoneId}",
+                    'Status' => 'Available',
+                    'instanceID' => 0
+                ];
+                IPS_LogMessage('AirzoneGateway', "Found zone: " . ($zoneData['name'] ?? "Zone {$zoneId}"));
+            } else {
+                IPS_LogMessage('AirzoneGateway', "No data for zone {$zoneId} at endpoint: $endpoint");
             }
         }
         
-        IPS_LogMessage('AirzoneGateway', "All endpoints failed for IP: $gatewayIP");
-        return [];
+        if (empty($systems)) {
+            IPS_LogMessage('AirzoneGateway', "No zones found for gateway IP: $gatewayIP");
+        }
+        
+        return $systems;
     }
     
     private function parseSystemData(array $data, string $endpoint): array
