@@ -407,35 +407,32 @@ class AirzoneAidoo extends IPSModule
 
     private function SendHTTPRequest(string $method, string $url, array $data = null)
     {
-        $ch = curl_init();
-        
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
+        // Setup cURL genau wie im funktionierenden TestControl
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
             CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Accept: application/json'
-            ]
-        ]);
+            CURLOPT_POSTFIELDS => $data ? json_encode($data) : null
+        ));
 
-        if ($data !== null && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        // Send the request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            error_log("Airzone API cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false;
         }
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        // Close the cURL handler
         curl_close($ch);
 
         // Debug logging
-        error_log("Airzone API Call: {$method} {$url}, Data: " . json_encode($data) . ", Response: {$response}, HTTP Code: {$httpCode}");
-        
-        if ($response === false || $httpCode >= 400) {
-            error_log("Airzone API Error: HTTP {$httpCode}, cURL Error: {$error}");
-            return false;
-        }
+        error_log("Airzone API Call: {$method} {$url}, Data: " . json_encode($data) . ", Response: {$response}");
 
         return json_decode($response, true);
     }
