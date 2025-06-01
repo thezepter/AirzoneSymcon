@@ -362,12 +362,13 @@ class AirzoneAidoo extends IPSModule
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
         $modeMapping = [
-            0 => 'stop',
-            1 => 'cool',
-            2 => 'heat',
-            3 => 'fan',
-            4 => 'dry',
-            5 => 'auto'
+            1 => 'stop',
+            2 => 'cool',
+            3 => 'heat', 
+            4 => 'fan',
+            5 => 'dry',
+            6 => 'aux',
+            7 => 'auto'
         ];
 
         if (!isset($modeMapping[$mode])) {
@@ -550,19 +551,31 @@ class AirzoneAidoo extends IPSModule
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
         
-        $url = sprintf(self::API_LOCAL_BASE, $gatewayIP) . '/hvac';
-        $params = [
-            'systemid' => $systemID,
-            'zoneid' => $zoneID
-        ];
+        // Direkte cURL-Anfrage für Update (GET)
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac?systemid={$systemID}&zoneid={$zoneID}";
         
-        $url .= '?' . http_build_query($params);
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'GET'
+        ));
+
+        $response = curl_exec($ch);
         
-        $response = $this->SendHTTPRequest('GET', $url);
+        if ($response === FALSE) {
+            error_log("GetLocalSystemData cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
         
-        // Extract data from Aidoo Pro response format
-        if ($response && isset($response['data']) && !empty($response['data'])) {
-            return $response['data'][0];
+        curl_close($ch);
+        
+        $responseData = json_decode($response, true);
+        if ($responseData && isset($responseData['data']) && !empty($responseData['data'])) {
+            return $responseData['data'][0];
         }
         
         return false;
