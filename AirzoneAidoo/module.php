@@ -133,45 +133,46 @@ class AirzoneAidoo extends IPSModule
         $zoneID = $this->ReadPropertyString('ZoneID');
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        echo "Konfiguration:<br>";
-        echo "SystemID: {$systemID}<br>";
-        echo "ZoneID: {$zoneID}<br>";
-        echo "Gateway IP: {$gatewayIP}<br><br>";
-        
-        // Test Ein/Aus
-        $data = [
-            'systemID' => (int)$systemID,
-            'zoneID' => (int)$zoneID,
-            'on' => 1
-        ];
-        
-        $url = "http://{$gatewayIP}:3000/api/v1/hvac";
-        
-        echo "Sende API Call:<br>";
-        echo "URL: {$url}<br>";
-        echo "Data: " . json_encode($data) . "<br><br>";
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_CUSTOMREQUEST => 'PUT',
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
-            ],
-            CURLOPT_POSTFIELDS => json_encode($data)
-        ]);
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
 
+        // Daten für die PUT-Anfrage (genau wie Ihr Script)
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "on" => 1 // 1, um die Klimaanlage einzuschalten
+        );
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage (genau wie Ihr Script)
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT', // Verwende die PUT-Methode
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            echo "cURL Error: " . curl_error($ch) . "\n";
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
         curl_close($ch);
-        
-        echo "Antwort:<br>";
-        echo "HTTP Code: {$httpCode}<br>";
-        echo "Response: {$response}<br>";
-        echo "cURL Error: {$error}<br>";
+
+        // Ausgabe der Antwort (genau wie Ihr Script)
+        echo "API-Antwort:\n";
+        echo $response;
         
         return true;
     }
