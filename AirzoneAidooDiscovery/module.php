@@ -59,6 +59,58 @@ class AirzoneAidooDiscovery extends IPSModule
 
     public function DiscoverDevices(): array
     {
+        $devices = [];
+        
+        // Try mDNS discovery first
+        $mdnsDevices = $this->DiscoverViaMDNS();
+        if (!empty($mdnsDevices)) {
+            $devices = array_merge($devices, $mdnsDevices);
+        }
+        
+        // Fallback: Network scan
+        $networkDevices = $this->DiscoverViaNetwork();
+        if (!empty($networkDevices)) {
+            $devices = array_merge($devices, $networkDevices);
+        }
+        
+        // Remove duplicates based on IP
+        $uniqueDevices = [];
+        $seenIPs = [];
+        foreach ($devices as $device) {
+            if (!in_array($device['ip'], $seenIPs)) {
+                $uniqueDevices[] = $device;
+                $seenIPs[] = $device['ip'];
+            }
+        }
+        
+        return $uniqueDevices;
+    }
+
+    private function DiscoverViaMDNS(): array
+    {
+        $devices = [];
+        
+        // Use avahi-browse for mDNS discovery
+        $command = 'avahi-browse -t -r _http._tcp 2>/dev/null | grep -i airzone';
+        $output = [];
+        exec($command, $output);
+        
+        foreach ($output as $line) {
+            if (preg_match('/(\d+\.\d+\.\d+\.\d+)/', $line, $matches)) {
+                $ip = $matches[1];
+                $device = $this->CheckDevice($ip);
+                if ($device !== false) {
+                    $device['discovery_method'] = 'mDNS';
+                    $devices[] = $device;
+                }
+            }
+        }
+        
+        return $devices;
+    }
+
+    private function DiscoverViaNetwork(): array
+    {
         $discoveryIP = $this->ReadPropertyString('DiscoveryIP');
         $devices = [];
 
@@ -74,6 +126,7 @@ class AirzoneAidooDiscovery extends IPSModule
         foreach ($range as $ip) {
             $device = $this->CheckDevice($ip);
             if ($device !== false) {
+                $device['discovery_method'] = 'Network Scan';
                 $devices[] = $device;
             }
         }
@@ -83,30 +136,40 @@ class AirzoneAidooDiscovery extends IPSModule
 
     private function CheckDevice(string $ip): array|false
     {
-        $url = "http://{$ip}:3000/api/v1/ping";
+        // Test multiple endpoints to detect Airzone devices
+        $testUrls = [
+            "http://{$ip}:3000/api/v1/hvac?systemid=1&zoneid=1",
+            "http://{$ip}:3000/api/v1/ping",
+            "http://{$ip}:3000/api/v1/info"
+        ];
         
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 2,
-            CURLOPT_CONNECTTIMEOUT => 2,
-            CURLOPT_HTTPHEADER => ['Accept: application/json']
-        ]);
+        foreach ($testUrls as $url) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 3,
+                CURLOPT_CONNECTTIMEOUT => 2,
+                CURLOPT_HTTPHEADER => ['Accept: application/json']
+            ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-        if ($response !== false && $httpCode === 200) {
-            $data = json_decode($response, true);
-            
-            return [
-                'ip' => $ip,
-                'name' => $data['name'] ?? 'Airzone Gateway',
-                'model' => $data['model'] ?? 'Aidoo',
-                'version' => $data['version'] ?? 'Unknown'
-            ];
+            if ($response !== false && $httpCode === 200) {
+                $data = json_decode($response, true);
+                
+                // Check if this looks like an Airzone device
+                if (isset($data['data']) || isset($data['roomTemp']) || isset($data['name'])) {
+                    return [
+                        'ip' => $ip,
+                        'name' => $data['name'] ?? "Airzone Gateway ({$ip})",
+                        'model' => $data['model'] ?? 'Aidoo Pro',
+                        'version' => $data['version'] ?? 'Unknown'
+                    ];
+                }
+            }
         }
 
         return false;
