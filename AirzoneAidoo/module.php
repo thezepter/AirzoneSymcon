@@ -24,7 +24,7 @@ class AirzoneAidoo extends IPSModule
         $this->RegisterPropertyString('CloudUsername', '');
         $this->RegisterPropertyString('CloudPassword', '');
         $this->RegisterPropertyBoolean('UseLocalConnection', true);
-        $this->RegisterPropertyInteger('UpdateInterval', 30);
+        $this->RegisterPropertyInteger('UpdateInterval', 60);
         $this->RegisterPropertyString('SystemID', '');
         $this->RegisterPropertyString('ZoneID', '');
 
@@ -253,24 +253,52 @@ class AirzoneAidoo extends IPSModule
     {
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        error_log("SetPower: SystemID={$systemID}, ZoneID={$zoneID}, Power=" . ($power ? 'true' : 'false'));
-        
-        $data = [
-            'systemID' => (int)$systemID,
-            'zoneID' => (int)$zoneID,
-            'on' => $power ? 1 : 0
-        ];
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
 
-        error_log("SetPower: Sending data: " . json_encode($data));
-        
-        $result = $this->SendCommand('PUT', '/api/v1/hvac', $data);
-        error_log("SetPower: SendCommand result: " . ($result ? 'success' : 'failed'));
-        
-        if ($result) {
+        // Daten für die PUT-Anfrage
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "on" => $power ? 1 : 0
+        );
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            error_log("SetPower cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
+        curl_close($ch);
+
+        // Prüfe Antwort und aktualisiere Variable
+        $responseData = json_decode($response, true);
+        if ($responseData && isset($responseData['data'][0])) {
             $this->SetValue('Power', $power);
             return true;
         }
+        
         return false;
     }
 
@@ -278,17 +306,52 @@ class AirzoneAidoo extends IPSModule
     {
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        $data = [
-            'systemID' => (int)$systemID,
-            'zoneID' => (int)$zoneID,
-            'setpoint' => $temperature
-        ];
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
 
-        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
+        // Daten für die PUT-Anfrage
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "setpoint" => $temperature
+        );
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            error_log("SetTemperature cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
+        curl_close($ch);
+
+        // Prüfe Antwort und aktualisiere Variable
+        $responseData = json_decode($response, true);
+        if ($responseData && isset($responseData['data'][0])) {
             $this->SetValue('SetTemperature', $temperature);
             return true;
         }
+        
         return false;
     }
 
@@ -296,6 +359,7 @@ class AirzoneAidoo extends IPSModule
     {
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
         $modeMapping = [
             0 => 'stop',
@@ -310,16 +374,50 @@ class AirzoneAidoo extends IPSModule
             return false;
         }
 
-        $data = [
-            'systemID' => (int)$systemID,
-            'zoneID' => (int)$zoneID,
-            'mode' => $modeMapping[$mode]
-        ];
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
 
-        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
+        // Daten für die PUT-Anfrage
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "mode" => $modeMapping[$mode]
+        );
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            error_log("SetMode cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
+        curl_close($ch);
+
+        // Prüfe Antwort und aktualisiere Variable
+        $responseData = json_decode($response, true);
+        if ($responseData && isset($responseData['data'][0])) {
             $this->SetValue('Mode', $mode);
             return true;
         }
+        
         return false;
     }
 
@@ -327,17 +425,52 @@ class AirzoneAidoo extends IPSModule
     {
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
-        $data = [
-            'systemID' => (int)$systemID,
-            'zoneID' => (int)$zoneID,
-            'fanspeed' => $speed
-        ];
+        // API-URL
+        $apiUrl = "http://{$gatewayIP}:3000/api/v1/hvac";
 
-        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
+        // Daten für die PUT-Anfrage
+        $putData = array(
+            "systemID" => (int)$systemID,
+            "zoneID" => (int)$zoneID,
+            "fanspeed" => $speed
+        );
+
+        // JSON-Daten erstellen
+        $jsonData = json_encode($putData);
+
+        // Setup cURL für die PUT-Anfrage
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonData
+        ));
+
+        // Send the PUT request
+        $response = curl_exec($ch);
+
+        // Check for errors
+        if ($response === FALSE) {
+            error_log("SetFanSpeed cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
+
+        // Close the cURL handler
+        curl_close($ch);
+
+        // Prüfe Antwort und aktualisiere Variable
+        $responseData = json_decode($response, true);
+        if ($responseData && isset($responseData['data'][0])) {
             $this->SetValue('FanSpeed', $speed);
             return true;
         }
+        
         return false;
     }
 
