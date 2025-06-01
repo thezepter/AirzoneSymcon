@@ -49,9 +49,6 @@ class AirzoneAidoo extends IPSModule
 
         // Timer
         $this->RegisterTimer('UpdateTimer', 0, 'AIRZONE_Update($_IPS[\'TARGET\']);');
-
-        // Connect to parent
-        $this->ConnectParent('{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}'); // Client Socket
     }
 
     public function Destroy()
