@@ -48,7 +48,7 @@ class AirzoneAidoo extends IPSModule
         $this->RegisterVariableFloat('Humidity', $this->Translate('Humidity'), '~Humidity.F', 6);
 
         // Timer
-        $this->RegisterTimer('UpdateTimer', 0, 'AIRZONE_Update($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('UpdateTimer', 0, 'AirzoneAidoo_Update($_IPS[\'TARGET\']);');
     }
 
     public function Destroy()
@@ -133,6 +133,11 @@ class AirzoneAidoo extends IPSModule
         $zoneID = $this->ReadPropertyString('ZoneID');
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
+        echo "Konfiguration:<br>";
+        echo "SystemID: {$systemID}<br>";
+        echo "ZoneID: {$zoneID}<br>";
+        echo "Gateway IP: {$gatewayIP}<br><br>";
+        
         // Test Ein/Aus
         $data = [
             'systemID' => (int)$systemID,
@@ -141,6 +146,10 @@ class AirzoneAidoo extends IPSModule
         ];
         
         $url = "http://{$gatewayIP}:3000/api/v1/hvac";
+        
+        echo "Sende API Call:<br>";
+        echo "URL: {$url}<br>";
+        echo "Data: " . json_encode($data) . "<br><br>";
         
         $ch = curl_init();
         curl_setopt_array($ch, [
@@ -159,9 +168,30 @@ class AirzoneAidoo extends IPSModule
         $error = curl_error($ch);
         curl_close($ch);
         
-        error_log("Test Control - URL: {$url}, Data: " . json_encode($data) . ", Response: {$response}, HTTP: {$httpCode}, Error: {$error}");
+        echo "Antwort:<br>";
+        echo "HTTP Code: {$httpCode}<br>";
+        echo "Response: {$response}<br>";
+        echo "cURL Error: {$error}<br>";
         
-        return "Test durchgeführt - siehe Log für Details";
+        return true;
+    }
+
+    public function TestPowerOn()
+    {
+        echo "Test: Zone einschalten<br>";
+        return $this->SetPower(true);
+    }
+
+    public function TestPowerOff()
+    {
+        echo "Test: Zone ausschalten<br>";
+        return $this->SetPower(false);
+    }
+
+    public function TestSetTemp($temperature = 22.0)
+    {
+        echo "Test: Temperatur auf {$temperature}°C setzen<br>";
+        return $this->SetTemperature($temperature);
     }
 
 
