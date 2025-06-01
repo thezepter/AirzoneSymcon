@@ -48,7 +48,7 @@ class AirzoneAidoo extends IPSModule
         $this->RegisterVariableFloat('Humidity', $this->Translate('Humidity'), '~Humidity.F', 6);
 
         // Timer
-        $this->RegisterTimer('UpdateTimer', 0, 'AirzoneAidoo_Update($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('UpdateTimer', 0, '$this->Update();');
     }
 
     public function Destroy()
