@@ -116,6 +116,43 @@ class AirzoneAidoo extends IPSModule
         }
     }
 
+    public function TestControl()
+    {
+        $systemID = $this->ReadPropertyString('SystemID');
+        $zoneID = $this->ReadPropertyString('ZoneID');
+        $gatewayIP = $this->ReadPropertyString('GatewayIP');
+        
+        // Test Ein/Aus
+        $data = [
+            'systemID' => (int)$systemID,
+            'zoneID' => (int)$zoneID,
+            'on' => 1
+        ];
+        
+        $url = "http://{$gatewayIP}:3000/api/v1/hvac";
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json'
+            ],
+            CURLOPT_POSTFIELDS => json_encode($data)
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        error_log("Test Control - URL: {$url}, Data: " . json_encode($data) . ", Response: {$response}, HTTP: {$httpCode}, Error: {$error}");
+        
+        return "Test durchgeführt - siehe Log für Details";
+    }
+
 
 
     public function SetPower(bool $power)
@@ -344,8 +381,10 @@ class AirzoneAidoo extends IPSModule
         curl_close($ch);
 
         // Debug logging
+        error_log("Airzone API Call: {$method} {$url}, Data: " . json_encode($data) . ", Response: {$response}, HTTP Code: {$httpCode}");
+        
         if ($response === false || $httpCode >= 400) {
-            error_log("Airzone API Error: HTTP {$httpCode}, cURL Error: {$error}, URL: {$url}, Data: " . json_encode($data));
+            error_log("Airzone API Error: HTTP {$httpCode}, cURL Error: {$error}");
             return false;
         }
 
