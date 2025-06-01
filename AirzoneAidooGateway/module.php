@@ -55,7 +55,7 @@ class AirzoneAidooGateway extends IPSModule
                     'Status' => $instanceID > 0 ? 'Created' : 'Not Created',
                     'instanceID' => $instanceID,
                     'create' => [
-                        'moduleID' => '{E7F2A8B1-9C3D-4E5F-8A6B-1D4C9E3F2A7B}',
+                        'moduleID' => '{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}',
                         'name' => $system['ZoneName'],
                         'configuration' => [
                             'GatewayIP' => $this->ReadPropertyString('GatewayIP'),
@@ -238,7 +238,7 @@ class AirzoneAidooGateway extends IPSModule
     private function GetZoneInstanceID(string $systemID, string $zoneID): int
     {
         // Search through all instances to find matching SystemID and ZoneID
-        $instances = IPS_GetInstanceListByModuleID('{E7F2A8B1-9C3D-4E5F-8A6B-1D4C9E3F2A7B}');
+        $instances = IPS_GetInstanceListByModuleID('{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}');
         
         foreach ($instances as $instanceID) {
             try {

@@ -6,108 +6,102 @@ class AirzoneAidooDiscovery extends IPSModule
 {
     public function Create()
     {
+        // Never delete this line!
         parent::Create();
-        $this->RegisterPropertyString('NetworkRange', '192.168.2.0/24');
+
+        // Properties
+        $this->RegisterPropertyString('DiscoveryIP', '192.168.1.0/24');
     }
 
     public function Destroy()
     {
+        // Never delete this line!
         parent::Destroy();
     }
 
     public function ApplyChanges()
     {
+        // Never delete this line!
         parent::ApplyChanges();
-        $this->SetStatus(IS_ACTIVE);
     }
 
     public function GetConfigurationForm()
     {
-        return json_encode([
-            'elements' => [
-                [
-                    'type' => 'ValidationTextBox',
-                    'name' => 'NetworkRange',
-                    'caption' => 'Network Range (CIDR)'
-                ]
-            ],
-            'actions' => [
-                [
-                    'type' => 'Button',
-                    'caption' => 'Search for Airzone Devices',
-                    'onClick' => 'AIRZONEDISCOVERY_SearchDevices($id);'
-                ],
-                [
-                    'type' => 'List',
-                    'name' => 'FoundDevices',
-                    'caption' => 'Found Devices',
-                    'columns' => [
-                        ['caption' => 'IP Address', 'name' => 'ip', 'width' => '150px'],
-                        ['caption' => 'Status', 'name' => 'status', 'width' => '100px']
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        
+        $devices = $this->DiscoverDevices();
+        
+        if (!empty($devices)) {
+            $values = [];
+            foreach ($devices as $device) {
+                $instanceID = $this->GetInstanceIDByIP($device['ip']);
+                $values[] = [
+                    'IP' => $device['ip'],
+                    'Name' => $device['name'],
+                    'Model' => $device['model'],
+                    'Status' => $instanceID > 0 ? 'Created' : 'Not Created',
+                    'instanceID' => $instanceID,
+                    'create' => [
+                        'moduleID' => '{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}',
+                        'configuration' => [
+                            'GatewayIP' => $device['ip'],
+                            'UseLocalConnection' => true
+                        ]
                     ]
-                ]
-            ]
-        ]);
+                ];
+            }
+            
+            $form['actions'][0]['values'] = $values;
+        }
+
+        return json_encode($form);
     }
 
-    public function SearchDevices()
+    public function DiscoverDevices(): array
     {
         $devices = [];
         
-        // First try mDNS discovery for Airzone devices
+        // Try mDNS discovery first
         $mdnsDevices = $this->DiscoverViaMDNS();
-        $devices = array_merge($devices, $mdnsDevices);
-        
-        // Test your known gateway
-        if ($this->TestAirzoneDevice('192.168.2.61')) {
-            $devices[] = [
-                'ip' => '192.168.2.61',
-                'status' => 'Found (Known Gateway)'
-            ];
+        if (!empty($mdnsDevices)) {
+            $devices = array_merge($devices, $mdnsDevices);
         }
         
-        // Network scan as fallback
-        $networkRange = $this->ReadPropertyString('NetworkRange');
-        if (strpos($networkRange, '/') !== false) {
-            list($network, $cidr) = explode('/', $networkRange);
-            $base = substr($network, 0, strrpos($network, '.'));
-            
-            // Scan limited range for performance
-            for ($i = 1; $i <= 100; $i++) {
-                $ip = $base . '.' . $i;
-                if ($ip !== '192.168.2.61' && $this->TestAirzoneDevice($ip)) {
-                    $devices[] = [
-                        'ip' => $ip,
-                        'status' => 'Found (Network Scan)'
-                    ];
-                }
+        // Fallback: Network scan
+        $networkDevices = $this->DiscoverViaNetwork();
+        if (!empty($networkDevices)) {
+            $devices = array_merge($devices, $networkDevices);
+        }
+        
+        // Remove duplicates based on IP
+        $uniqueDevices = [];
+        $seenIPs = [];
+        foreach ($devices as $device) {
+            if (!in_array($device['ip'], $seenIPs)) {
+                $uniqueDevices[] = $device;
+                $seenIPs[] = $device['ip'];
             }
         }
         
-        return $devices;
+        return $uniqueDevices;
     }
 
     private function DiscoverViaMDNS(): array
     {
         $devices = [];
         
-        // Use avahi-browse to find _http._tcp.local services
-        $command = 'timeout 5 avahi-browse -t -r _http._tcp 2>/dev/null';
+        // Use avahi-browse for mDNS discovery
+        $command = 'avahi-browse -t -r _http._tcp 2>/dev/null | grep -i airzone';
         $output = [];
         exec($command, $output);
         
         foreach ($output as $line) {
-            // Look for Airzone device patterns: AZP, AZPFAN, AZW5GR, AZWS
-            if (preg_match('/(AZP|AZPFAN|AZW5GR|AZWS)[A-Z0-9]+\.local/', $line, $matches)) {
-                $hostname = $matches[0];
-                
-                // Resolve .local hostname to IP
-                $ip = $this->ResolveHostname($hostname);
-                if ($ip && $this->TestAirzoneDevice($ip)) {
-                    $devices[] = [
-                        'ip' => $ip,
-                        'status' => 'Found (mDNS: ' . $hostname . ')'
-                    ];
+            if (preg_match('/(\d+\.\d+\.\d+\.\d+)/', $line, $matches)) {
+                $ip = $matches[1];
+                $device = $this->CheckDevice($ip);
+                if ($device !== false) {
+                    $device['discovery_method'] = 'mDNS';
+                    $devices[] = $device;
                 }
             }
         }
@@ -115,35 +109,98 @@ class AirzoneAidooDiscovery extends IPSModule
         return $devices;
     }
 
-    private function ResolveHostname(string $hostname): string|false
+    private function DiscoverViaNetwork(): array
     {
-        // Try to resolve .local hostname to IP
-        $ip = gethostbyname($hostname);
-        
-        // gethostbyname returns the hostname if resolution fails
-        if ($ip === $hostname) {
-            return false;
+        $discoveryIP = $this->ReadPropertyString('DiscoveryIP');
+        $devices = [];
+
+        // Parse CIDR notation
+        if (strpos($discoveryIP, '/') !== false) {
+            list($network, $cidr) = explode('/', $discoveryIP);
+            $range = $this->cidrToRange($network, (int)$cidr);
+        } else {
+            // Single IP
+            $range = [$discoveryIP];
         }
-        
-        return $ip;
+
+        foreach ($range as $ip) {
+            $device = $this->CheckDevice($ip);
+            if ($device !== false) {
+                $device['discovery_method'] = 'Network Scan';
+                $devices[] = $device;
+            }
+        }
+
+        return $devices;
     }
 
-    private function TestAirzoneDevice(string $ip): bool
+    private function CheckDevice(string $ip): array|false
     {
-        $url = "http://{$ip}:3000/api/v1/hvac?systemid=1&zoneid=1";
+        // Test multiple endpoints to detect Airzone devices
+        $testUrls = [
+            "http://{$ip}:3000/api/v1/hvac?systemid=1&zoneid=1",
+            "http://{$ip}:3000/api/v1/ping",
+            "http://{$ip}:3000/api/v1/info"
+        ];
         
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 2,
-            CURLOPT_CONNECTTIMEOUT => 1
-        ]);
+        foreach ($testUrls as $url) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 3,
+                CURLOPT_CONNECTTIMEOUT => 2,
+                CURLOPT_HTTPHEADER => ['Accept: application/json']
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($response !== false && $httpCode === 200) {
+                $data = json_decode($response, true);
+                
+                // Check if this looks like an Airzone device
+                if (isset($data['data']) || isset($data['roomTemp']) || isset($data['name'])) {
+                    return [
+                        'ip' => $ip,
+                        'name' => $data['name'] ?? "Airzone Gateway ({$ip})",
+                        'model' => $data['model'] ?? 'Aidoo Pro',
+                        'version' => $data['version'] ?? 'Unknown'
+                    ];
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function cidrToRange(string $cidr, int $netmask): array
+    {
+        $range = [];
+        $cidrLong = ip2long($cidr);
+        $netmaskLong = (0xFFFFFFFF << (32 - $netmask)) & 0xFFFFFFFF;
+        $networkLong = $cidrLong & $netmaskLong;
+        $broadcastLong = $networkLong | (~$netmaskLong & 0xFFFFFFFF);
+
+        for ($i = $networkLong + 1; $i < $broadcastLong; $i++) {
+            $range[] = long2ip($i);
+        }
+
+        return $range;
+    }
+
+    private function GetInstanceIDByIP(string $ip): int
+    {
+        $instanceIDs = IPS_GetInstanceListByModuleID('{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}');
         
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        return ($httpCode === 200 && $response !== false);
+        foreach ($instanceIDs as $instanceID) {
+            $gatewayIP = IPS_GetProperty($instanceID, 'GatewayIP');
+            if ($gatewayIP === $ip) {
+                return $instanceID;
+            }
+        }
+
+        return 0;
     }
 }
