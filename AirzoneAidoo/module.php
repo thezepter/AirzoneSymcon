@@ -478,6 +478,7 @@ class AirzoneAidoo extends IPSModule
         $zoneID = $this->ReadPropertyString('ZoneID');
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
+        // Direkte Zuordnung: IP-Symcon Wert → API Wert
         $modeMapping = [
             1 => 1,  // Stop
             2 => 2,  // Cooling
@@ -488,6 +489,7 @@ class AirzoneAidoo extends IPSModule
         ];
 
         if (!isset($modeMapping[$mode])) {
+            error_log("SetMode: Ungültiger Modus {$mode}");
             return false;
         }
 
@@ -500,6 +502,8 @@ class AirzoneAidoo extends IPSModule
             "zoneID" => (int)$zoneID,
             "mode" => $modeMapping[$mode]
         );
+
+        error_log("SetMode: Sende " . json_encode($putData));
 
         // JSON-Daten erstellen
         $jsonData = json_encode($putData);
@@ -528,13 +532,17 @@ class AirzoneAidoo extends IPSModule
         // Close the cURL handler
         curl_close($ch);
 
+        error_log("SetMode: API-Antwort " . $response);
+
         // Prüfe Antwort und aktualisiere Variable
         $responseData = json_decode($response, true);
         if ($responseData && isset($responseData['data'][0])) {
             $this->SetValue('Mode', $mode);
+            error_log("SetMode: Erfolgreich, Variable auf {$mode} gesetzt");
             return true;
         }
         
+        error_log("SetMode: Fehler in API-Antwort");
         return false;
     }
 
