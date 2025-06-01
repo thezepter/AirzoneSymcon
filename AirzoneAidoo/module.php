@@ -28,6 +28,9 @@ class AirzoneAidoo extends IPSModule
         $this->RegisterPropertyString('SystemID', '');
         $this->RegisterPropertyString('ZoneID', '');
 
+        // Profiles
+        $this->CreateProfiles();
+
         // Variables
         $this->RegisterVariableBoolean('Power', $this->Translate('Power'), '~Switch', 1);
         $this->EnableAction('Power');
@@ -42,10 +45,7 @@ class AirzoneAidoo extends IPSModule
         $this->RegisterVariableInteger('FanSpeed', $this->Translate('Fan Speed'), 'AIRZONE.FanSpeed', 5);
         $this->EnableAction('FanSpeed');
         
-        $this->RegisterVariableFloat('Humidity', $this->Translate('Humidity'), '~Humidity', 6);
-
-        // Profiles
-        $this->CreateProfiles();
+        $this->RegisterVariableFloat('Humidity', $this->Translate('Humidity'), '~Humidity.F', 6);
 
         // Timer
         $this->RegisterTimer('UpdateTimer', 0, 'AIRZONE_Update($_IPS[\'TARGET\']);');
