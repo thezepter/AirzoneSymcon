@@ -293,12 +293,12 @@ class AirzoneAidoo extends IPSModule
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
         $modeMapping = [
-            1 => 'stop',
-            2 => 'cool',
-            3 => 'heat', 
-            4 => 'fan',
-            5 => 'dry',
-            7 => 'auto'
+            1 => 1,  // Stop
+            2 => 2,  // Cooling
+            3 => 3,  // Heating
+            4 => 4,  // Fan
+            5 => 5,  // Dry
+            7 => 7   // Auto
         ];
 
         if (!isset($modeMapping[$mode])) {
@@ -479,12 +479,12 @@ class AirzoneAidoo extends IPSModule
         $gatewayIP = $this->ReadPropertyString('GatewayIP');
         
         $modeMapping = [
-            1 => 'stop',
-            2 => 'cool',
-            3 => 'heat', 
-            4 => 'fan',
-            5 => 'dry',
-            7 => 'auto'
+            1 => 1,  // Stop
+            2 => 2,  // Cooling
+            3 => 3,  // Heating
+            4 => 4,  // Fan
+            5 => 5,  // Dry
+            7 => 7   // Auto
         ];
 
         if (!isset($modeMapping[$mode])) {
