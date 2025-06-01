@@ -90,20 +90,31 @@ class AirzoneAidoo extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
+        error_log("RequestAction called: Ident={$Ident}, Value={$Value}");
+        
         switch ($Ident) {
             case 'Power':
-                $this->SetPower($Value);
+                error_log("Calling SetPower with value: {$Value}");
+                $result = $this->SetPower($Value);
+                error_log("SetPower result: " . ($result ? 'success' : 'failed'));
                 break;
             case 'SetTemperature':
-                $this->SetTemperature($Value);
+                error_log("Calling SetTemperature with value: {$Value}");
+                $result = $this->SetTemperature($Value);
+                error_log("SetTemperature result: " . ($result ? 'success' : 'failed'));
                 break;
             case 'Mode':
-                $this->SetMode($Value);
+                error_log("Calling SetMode with value: {$Value}");
+                $result = $this->SetMode($Value);
+                error_log("SetMode result: " . ($result ? 'success' : 'failed'));
                 break;
             case 'FanSpeed':
-                $this->SetFanSpeed($Value);
+                error_log("Calling SetFanSpeed with value: {$Value}");
+                $result = $this->SetFanSpeed($Value);
+                error_log("SetFanSpeed result: " . ($result ? 'success' : 'failed'));
                 break;
             default:
+                error_log("Unknown Ident: {$Ident}");
                 throw new Exception('Invalid Ident');
         }
     }
@@ -160,13 +171,20 @@ class AirzoneAidoo extends IPSModule
         $systemID = $this->ReadPropertyString('SystemID');
         $zoneID = $this->ReadPropertyString('ZoneID');
         
+        error_log("SetPower: SystemID={$systemID}, ZoneID={$zoneID}, Power=" . ($power ? 'true' : 'false'));
+        
         $data = [
             'systemID' => (int)$systemID,
             'zoneID' => (int)$zoneID,
             'on' => $power ? 1 : 0
         ];
 
-        if ($this->SendCommand('PUT', '/api/v1/hvac', $data)) {
+        error_log("SetPower: Sending data: " . json_encode($data));
+        
+        $result = $this->SendCommand('PUT', '/api/v1/hvac', $data);
+        error_log("SetPower: SendCommand result: " . ($result ? 'success' : 'failed'));
+        
+        if ($result) {
             $this->SetValue('Power', $power);
             return true;
         }
