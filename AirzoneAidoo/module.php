@@ -104,7 +104,7 @@ class AirzoneAidoo extends IPSModule
                 error_log("SetTemperature result: " . ($result ? 'success' : 'failed'));
                 break;
             case 'Mode':
-                error_log("Calling SetMode with value: {$Value}");
+                error_log("RequestAction Mode: Eingehender Wert = {$Value}");
                 $result = $this->SetMode($Value);
                 error_log("SetMode result: " . ($result ? 'success' : 'failed'));
                 break;
