@@ -61,6 +61,7 @@ class AirzoneAidooGateway extends IPSModule
                     'instanceID' => $instanceID,
                     'create' => [
                         'moduleID' => '{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}',
+                        'name' => $system['ZoneName'],
                         'configuration' => [
                             'GatewayIP' => $this->ReadPropertyString('GatewayIP'),
                             'SystemID' => $system['SystemID'],
