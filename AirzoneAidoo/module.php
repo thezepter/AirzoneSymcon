@@ -121,10 +121,7 @@ class AirzoneAidoo extends IPSModule
         }
     }
 
-    public function TestConnection()
-    {
-        return $this->TestLocalConnection();
-    }
+
 
     public function SetPower(bool $power)
     {
@@ -244,7 +241,7 @@ class AirzoneAidoo extends IPSModule
         }
     }
 
-    private function TestConnection(): bool
+    public function TestConnection(): bool
     {
         $useLocal = $this->ReadPropertyBoolean('UseLocalConnection');
         
