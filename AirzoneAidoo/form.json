@@ -1,0 +1,43 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "GatewayIP",
+            "caption": "Gateway IP Address"
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "SystemID",
+            "caption": "System ID"
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "ZoneID",
+            "caption": "Zone ID"
+        },
+        {
+            "type": "CheckBox",
+            "name": "UseLocalConnection",
+            "caption": "Use Local Connection"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "UpdateInterval",
+            "caption": "Update Interval (seconds)",
+            "minimum": 0,
+            "maximum": 300
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Test Connection",
+            "onClick": "AIRZONEAIDOO_TestConnection($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "Update Data",
+            "onClick": "AIRZONEAIDOO_UpdateData($id);"
+        }
+    ]
+}

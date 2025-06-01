@@ -3,13 +3,17 @@
     "name": "Airzone Aidoo Pro",
     "author": "IP-Symcon Community", 
     "url": "https://github.com/symcon/AirzoneAidoo",
-    "version": "2.0",
-    "build": 4,
+    "version": "2.1",
+    "build": 5,
     "date": 0,
     "modules": [
         {
             "id": "{E7F2A8B1-9C3D-4E5F-8A6B-1D4C9E3F2A7B}",
             "file": "AirzoneAidooGateway/module.php"
+        },
+        {
+            "id": "{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}",
+            "file": "AirzoneAidoo/module.php"
         }
     ]
 }
