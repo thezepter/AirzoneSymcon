@@ -186,6 +186,30 @@ class AirzoneAidoo extends IPSModule
         return $this->SetPower(true);
     }
 
+    public function TestModeCool()
+    {
+        echo "Test: Modus auf Kühlen setzen<br>";
+        return $this->TestMode(2);
+    }
+
+    public function TestModeHeat()
+    {
+        echo "Test: Modus auf Heizen setzen<br>";
+        return $this->TestMode(3);
+    }
+
+    public function TestModeFan()
+    {
+        echo "Test: Modus auf Lüften setzen<br>";
+        return $this->TestMode(4);
+    }
+
+    public function TestModeAuto()
+    {
+        echo "Test: Modus auf Automatik setzen<br>";
+        return $this->TestMode(7);
+    }
+
     public function TestPowerOff()
     {
         echo "Test: Zone ausschalten<br>";
