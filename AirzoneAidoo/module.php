@@ -48,7 +48,7 @@ class AirzoneAidoo extends IPSModule
         $this->RegisterVariableFloat('Humidity', $this->Translate('Humidity'), '~Humidity.F', 6);
 
         // Timer
-        $this->RegisterTimer('UpdateTimer', 0, '$this->Update();');
+        $this->RegisterTimer('UpdateTimer', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "Update", "");');
     }
 
     public function Destroy()
@@ -112,6 +112,9 @@ class AirzoneAidoo extends IPSModule
                 error_log("Calling SetFanSpeed with value: {$Value}");
                 $result = $this->SetFanSpeed($Value);
                 error_log("SetFanSpeed result: " . ($result ? 'success' : 'failed'));
+                break;
+            case 'Update':
+                $this->Update();
                 break;
             default:
                 error_log("Unknown Ident: {$Ident}");
