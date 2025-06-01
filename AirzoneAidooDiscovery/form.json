@@ -3,7 +3,8 @@
         {
             "type": "ValidationTextBox",
             "name": "DiscoveryIP",
-            "caption": "Discovery IP Range (CIDR notation, e.g., 192.168.1.0/24)"
+            "caption": "Network Range (CIDR)",
+            "value": "192.168.1.0/24"
         }
     ],
     "actions": [
@@ -14,10 +15,6 @@
             "rowCount": 10,
             "add": false,
             "delete": false,
-            "sort": {
-                "column": "IP",
-                "direction": "ascending"
-            },
             "columns": [
                 {
                     "caption": "IP Address",
@@ -25,7 +22,7 @@
                     "width": "150px"
                 },
                 {
-                    "caption": "Name",
+                    "caption": "Device Name",
                     "name": "Name",
                     "width": "200px"
                 },
@@ -37,15 +34,15 @@
                 {
                     "caption": "Status",
                     "name": "Status",
-                    "width": "100px"
+                    "width": "120px"
                 }
             ],
             "values": []
         },
         {
             "type": "Button",
-            "caption": "Discover Devices",
-            "onClick": "echo 'Discovery completed. Found ' . count(AIRZONEDISCOVERY_DiscoverDevices($id)) . ' devices.';"
+            "caption": "Search for Devices",
+            "onClick": "AIRZONEDISCOVERY_DiscoverDevices($id);"
         }
     ]
 }

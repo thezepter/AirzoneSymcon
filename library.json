@@ -1,23 +1,19 @@
 {
-    "id": "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}",
-    "name": "Airzone Aidoo Integration",
-    "author": "IP-Symcon Community",
+    "id": "{F8A3B2E1-4C5D-6789-ABCD-EF9876543210}",
+    "name": "Airzone Aidoo Pro",
+    "author": "IP-Symcon Community", 
     "url": "https://github.com/symcon/AirzoneAidoo",
-    "version": "1.0",
-    "build": 1,
+    "version": "1.1",
+    "build": 2,
     "date": 0,
     "modules": [
         {
-            "id": "{B8E5A8F1-9C2D-4E3F-8A7B-1D5C9E4F2A8B}",
-            "file": "AirzoneAidoo/module.php"
-        },
-        {
-            "id": "{D4E5F6A7-B8C9-1234-DEFG-456789ABCDEF}",
-            "file": "AirzoneAidooDiscovery/module.php"
-        },
-        {
-            "id": "{C1D2E3F4-A5B6-7890-CDEF-123456789ABC}",
+            "id": "{E7F2A8B1-9C3D-4E5F-8A6B-1D4C9E3F2A7B}",
             "file": "AirzoneAidooGateway/module.php"
+        },
+        {
+            "id": "{F9E8D7C6-B5A4-9382-716E-504F3E2D1C0B}",
+            "file": "AirzoneAidooDiscovery/module.php"
         }
     ]
 }
