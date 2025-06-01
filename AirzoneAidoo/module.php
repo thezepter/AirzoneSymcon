@@ -121,6 +121,11 @@ class AirzoneAidoo extends IPSModule
         }
     }
 
+    public function TestConnection()
+    {
+        return $this->TestLocalConnection();
+    }
+
     public function SetPower(bool $power)
     {
         $systemID = $this->ReadPropertyString('SystemID');
