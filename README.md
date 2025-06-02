@@ -34,7 +34,7 @@ Dieses Modul ermöglicht die vollständige Integration von Airzone Aidoo Systeme
 1. In IP-Symcon über **Module Store** installieren oder
 2. Git-Repository direkt einbinden:
    ```
-   https://github.com/[username]/airzone-aidoo-ipsymcon
+   https://github.com/thezepter/AirzoneSymcon
    ```
 
 ### Gateway konfigurieren
