@@ -43,6 +43,9 @@ Dieses Modul ermöglicht die vollständige Integration von Airzone Aidoo Systeme
 3. Port auf `3000` setzen (Standard)
 4. Verbindung testen
 
+![image](https://github.com/user-attachments/assets/58fd4f57-bad5-4085-b5dd-cd1c8a38b83e)
+
+
 ### Geräte hinzufügen
 1. **AirzoneAidoo** Instanz für jede Zone erstellen
 2. SystemID und ZoneID entsprechend der Aidoo-Konfiguration setzen
