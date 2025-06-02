@@ -5,6 +5,10 @@ Ein IP-Symcon Modul zur Integration und Steuerung von Airzone Aidoo Klimaanlagen
 ## Überblick
 
 Dieses Modul ermöglicht die vollständige Integration von Airzone Aidoo Systemen in IP-Symcon. Es unterstützt die Steuerung mehrerer Zonen mit verschiedenen Klimafunktionen über die lokale Gateway-Verbindung.
+Getestet mit einem: Airzone Webserver HUB Airzone Cloud Dual 2.4-5 GHz/Ethernet - ZX6WSPHUB
+
+![azx6wsphub](https://github.com/user-attachments/assets/3fe8f464-3fdd-4145-ad7e-c374112d8a36)
+
 
 ## Funktionen
 
